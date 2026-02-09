@@ -1,0 +1,66 @@
+{
+  "name": "dotti",
+  "version": "0.1.0",
+  "description": "Scan your codebase. Get AI agent recommendations. Generate optimized configs for every AI coding tool — in seconds.",
+  "keywords": [
+    "ai",
+    "agents",
+    "claude",
+    "cursor",
+    "copilot",
+    "codex",
+    "windsurf",
+    "gemini",
+    "amp",
+    "config",
+    "dotfiles",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/dotti"
+  },
+  "homepage": "https://dotti.dev",
+  "bin": {
+    "dotti": "./dist/bin/dotti.js"
+  },
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/cli.ts",
+    "start": "node dist/bin/dotti.js",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint src --ext .ts",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.8.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "glob": "^11.0.0",
+    "ora": "^8.1.0",
+    "picocolors": "^1.1.0",
+    "yaml": "^2.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

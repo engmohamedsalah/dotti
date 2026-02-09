@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>dotti — AI config, from your code</title>
+  <meta name="description" content="Stop wasting hours writing CLAUDE.md, .cursorrules, and AGENTS.md. dotti scans your codebase and generates optimized configs for every AI coding tool in seconds.">
+  <meta property="og:title" content="dotti — AI config, from your code">
+  <meta property="og:description" content="Stop guessing what goes in your AI config files. One scan. Smart recommendations. Every tool configured.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #060608;
+      --bg2: #0b0b0f;
+      --surface: #0e0e14;
+      --surface2: #12121a;
+      --border: #1a1a24;
+      --border-bright: #2a2a38;
+      --text: #eaeaf0;
+      --text-dim: #8888a0;
+      --text-muted: #4a4a5e;
+      --green: #00ff88;
+      --green-dim: #00cc6a;
+      --green-glow: rgba(0, 255, 136, 0.08);
+      --red: #ff4466;
+      --red-dim: #ff446620;
+      --amber: #ffaa33;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .glow-top {
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse, rgba(0,255,136,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; position: relative; }
+
+    /* ── Nav ── */
+    nav { padding: 20px 0; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--green); text-decoration: none; }
+    .logo span { color: var(--text-muted); font-weight: 400; }
+    nav .links { display: flex; gap: 24px; align-items: center; }
+    nav a { color: var(--text-dim); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+    nav a:hover { color: var(--text); }
+    .btn-sm { background: var(--green) !important; color: #000 !important; padding: 7px 16px; border-radius: 6px; font-family: var(--mono) !important; font-size: 12px !important; font-weight: 600 !important; transition: opacity 0.2s; }
+    .btn-sm:hover { opacity: 0.85; }
+
+    /* ── Hero ── */
+    .hero { padding: 100px 0 40px; text-align: center; position: relative; }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 12px; color: var(--green);
+      background: var(--green-glow); border: 1px solid rgba(0,255,136,0.12);
+      border-radius: 20px; padding: 6px 16px; margin-bottom: 28px;
+      animation: fadeIn 0.5s ease-out;
+    }
+    .hero-eyebrow .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+
+    h1 { font-size: clamp(40px, 7vw, 72px); font-weight: 800; line-height: 1.08; letter-spacing: -2px; animation: fadeIn 0.5s ease-out 0.1s both; }
+    h1 .green { color: var(--green); }
+
+    .hero-sub { font-size: 18px; color: var(--text-dim); max-width: 580px; margin: 20px auto 0; line-height: 1.65; animation: fadeIn 0.5s ease-out 0.2s both; }
+
+    /* ── Section helpers ── */
+    .section-tag { font-family: var(--mono); font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--text-muted); text-align: center; margin-bottom: 14px; }
+    .section-tag.red { color: var(--red); }
+    .section-tag.green { color: var(--green); }
+
+    h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; text-align: center; letter-spacing: -1px; margin-bottom: 16px; }
+
+    .section-desc { text-align: center; color: var(--text-dim); font-size: 16px; max-width: 600px; margin: 0 auto 48px; line-height: 1.6; }
+
+    /* ── Pain Section ── */
+    .pain-section { padding: 80px 0 60px; }
+
+    .pain-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 48px; }
+
+    .pain-stat {
+      background: var(--surface); border: 1px solid var(--red); border-radius: 12px;
+      padding: 28px 24px; text-align: center; position: relative; overflow: hidden;
+    }
+    .pain-stat::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,68,102,0.06), transparent 60%); pointer-events: none; }
+    .pain-stat .num { font-family: var(--mono); font-size: 42px; font-weight: 800; color: var(--red); line-height: 1; margin-bottom: 8px; }
+    .pain-stat .label { font-size: 14px; color: var(--text-dim); line-height: 1.4; }
+
+    /* Before / After */
+    .comparison { display: grid; grid-template-columns: 1fr 60px 1fr; gap: 0; align-items: stretch; }
+
+    .comp-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 32px 28px; position: relative; }
+    .comp-card.before { border-color: rgba(255,68,102,0.25); }
+    .comp-card.before::before { content: ''; position: absolute; inset: 0; border-radius: 14px; background: linear-gradient(135deg, rgba(255,68,102,0.04), transparent 50%); pointer-events: none; }
+    .comp-card.after { border-color: rgba(0,255,136,0.25); }
+    .comp-card.after::before { content: ''; position: absolute; inset: 0; border-radius: 14px; background: linear-gradient(135deg, rgba(0,255,136,0.04), transparent 50%); pointer-events: none; }
+
+    .comp-label { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; font-weight: 600; }
+    .comp-card.before .comp-label { color: var(--red); }
+    .comp-card.after .comp-label { color: var(--green); }
+
+    .comp-arrow { display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text-muted); }
+
+    .comp-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; font-size: 14px; line-height: 1.5; color: var(--text-dim); }
+    .comp-item .icon { flex-shrink: 0; margin-top: 2px; font-size: 14px; }
+    .comp-card.before .comp-item .icon { color: var(--red); }
+    .comp-card.after .comp-item .icon { color: var(--green); }
+
+    /* ── Terminal ── */
+    .terminal-section { padding: 80px 0; }
+
+    .terminal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      overflow: hidden; max-width: 780px; margin: 0 auto;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,255,136,0.04);
+    }
+
+    .terminal-bar { display: flex; align-items: center; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--bg2); }
+    .tdot { width: 12px; height: 12px; border-radius: 50%; }
+    .tdot.r { background: #ff5f57; } .tdot.y { background: #ffbd2e; } .tdot.g { background: #28c840; }
+    .terminal-title { flex: 1; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+
+    .terminal-body { padding: 24px; font-family: var(--mono); font-size: 13px; line-height: 1.75; }
+    .t-prompt { color: var(--green); }
+    .t-cmd { color: var(--text); font-weight: 600; }
+    .t-dim { color: var(--text-muted); }
+    .t-info { color: var(--text-dim); }
+    .t-ok { color: var(--green); }
+    .t-bold { color: var(--text); font-weight: 600; display: block; margin-top: 10px; }
+    .t-tree { color: var(--text-dim); }
+    .tl { display: block; }
+
+    /* ── Benefits ── */
+    .benefits-section { padding: 80px 0; }
+
+    .benefits-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+    .benefit-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 32px 28px; transition: all 0.25s; position: relative; overflow: hidden;
+    }
+    .benefit-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--green), transparent); opacity: 0; transition: opacity 0.3s; }
+    .benefit-card:hover::before { opacity: 1; }
+    .benefit-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+
+    .benefit-num { font-family: var(--mono); font-size: 11px; color: var(--green); letter-spacing: 1px; margin-bottom: 14px; }
+    .benefit-card h3 { font-size: 19px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.3px; }
+    .benefit-card p { font-size: 14px; color: var(--text-dim); line-height: 1.65; }
+
+    .benefit-card .proof {
+      margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);
+      font-family: var(--mono); font-size: 12px; color: var(--text-muted); font-style: italic;
+    }
+    .benefit-card .proof em { color: var(--text-dim); font-style: normal; }
+
+    /* Featured benefit (full width) */
+    .benefit-card.featured { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    .benefit-card.featured .right { display: flex; flex-direction: column; justify-content: center; }
+
+    .context-bar-container { display: flex; flex-direction: column; gap: 12px; }
+    .context-bar-label { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+    .context-bar { height: 28px; border-radius: 6px; overflow: hidden; display: flex; background: var(--bg); border: 1px solid var(--border); }
+    .context-bar .used { height: 100%; transition: width 0.8s ease; }
+    .context-bar.bad .used { background: linear-gradient(90deg, var(--red), #cc3355); }
+    .context-bar.good .used { background: linear-gradient(90deg, var(--green-dim), var(--green)); }
+
+    /* ── Tools ── */
+    .tools-section { padding: 80px 0; text-align: center; }
+    .tools-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; max-width: 720px; margin: 0 auto; }
+
+    .tool-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 18px; font-family: var(--mono); font-size: 13px; color: var(--text-dim);
+      transition: all 0.2s;
+    }
+    .tool-chip:hover { color: var(--text); border-color: var(--border-bright); }
+    .tool-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green-dim); }
+    .tool-chip .file { font-size: 10px; color: var(--text-muted); margin-left: 4px; }
+
+    /* ── How ── */
+    .how-section { padding: 80px 0; }
+    .how-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .how-step { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 32px 24px; }
+    .step-num { font-family: var(--mono); font-size: 48px; font-weight: 800; color: var(--border-bright); line-height: 1; margin-bottom: 16px; }
+    .how-step h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .how-step p { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+    .how-step code { display: inline-block; margin-top: 12px; font-family: var(--mono); font-size: 12px; color: var(--green); background: var(--bg); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); }
+
+    /* ── CTA ── */
+    .cta-section { padding: 100px 0; text-align: center; }
+
+    .cta-box {
+      background: var(--surface); border: 1px solid var(--green); border-radius: 18px;
+      padding: 64px 40px; max-width: 580px; margin: 0 auto;
+      box-shadow: 0 0 80px var(--green-glow), 0 0 160px rgba(0,255,136,0.03);
+      position: relative; overflow: hidden;
+    }
+    .cta-box::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(0,255,136,0.06), transparent 60%); pointer-events: none; }
+    .cta-box h2 { font-size: 30px; margin-bottom: 14px; }
+    .cta-box p { color: var(--text-dim); font-size: 16px; margin-bottom: 32px; line-height: 1.6; }
+
+    .cta-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--green); color: #000; border: none; border-radius: 10px;
+      padding: 16px 32px; font-family: var(--mono); font-size: 16px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .cta-sub { margin-top: 16px; font-size: 13px; color: var(--text-muted); }
+
+    /* ── Footer ── */
+    footer { padding: 32px 0; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    footer span { font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+    footer .flinks { display: flex; gap: 20px; }
+    footer a { font-size: 13px; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+    footer a:hover { color: var(--text-dim); }
+
+    /* ── Animations ── */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .reveal { opacity: 0; transform: translateY(24px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 768px) {
+      .pain-stats { grid-template-columns: 1fr; }
+      .comparison { grid-template-columns: 1fr; }
+      .comp-arrow { transform: rotate(90deg); padding: 8px 0; }
+      .benefits-grid { grid-template-columns: 1fr; }
+      .benefit-card.featured { grid-template-columns: 1fr; }
+      .how-steps { grid-template-columns: 1fr; }
+      .hero { padding: 60px 0 30px; }
+      nav .links { gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Nav -->
+    <nav>
+      <a href="/" class="logo">dotti<span>.dev</span></a>
+      <div class="links">
+        <a href="https://github.com/your-org/dotti">GitHub</a>
+        <a href="docs.html">Docs</a>
+        <a href="https://npmjs.com/package/dotti" class="btn-sm">Get Started</a>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="glow-top"></div>
+      <div class="hero-eyebrow"><div class="dot"></div> supports 7 AI coding tools</div>
+      <h1>Stop guessing what goes<br>in your <span class="green">AI config files.</span></h1>
+      <p class="hero-sub">
+        dotti scans your codebase, recommends the exact agents your project needs,
+        and generates optimized configs for every AI tool — in one command.
+      </p>
+    </section>
+
+    <!-- The Problem -->
+    <section class="pain-section">
+      <div class="section-tag red">The Problem</div>
+      <h2>AI tools are powerful. Configuring them is hell.</h2>
+      <p class="section-desc">
+        Every AI coding tool needs a config file. But no tool tells you what to put in it.
+        So developers copy from blog posts, install 75 agents blindly, and waste their context window.
+      </p>
+
+      <div class="pain-stats reveal">
+        <div class="pain-stat">
+          <div class="num">7</div>
+          <div class="label">Different config formats.<br>One per AI tool.</div>
+        </div>
+        <div class="pain-stat">
+          <div class="num">53k</div>
+          <div class="label">Tokens consumed before "hi"<br>by unoptimized agents.</div>
+        </div>
+        <div class="pain-stat">
+          <div class="num">2–3h</div>
+          <div class="label">Manual setup time<br>per tool, per project.</div>
+        </div>
+      </div>
+
+      <div class="comparison reveal">
+        <div class="comp-card before">
+          <div class="comp-label">✗ Without dotti</div>
+          <div class="comp-item"><span class="icon">✗</span><span>Copy config from a blog post. Hope it works for YOUR stack.</span></div>
+          <div class="comp-item"><span class="icon">✗</span><span>Install 75 agents. Claude loads all of them. 53k tokens gone before your first question.</span></div>
+          <div class="comp-item"><span class="icon">✗</span><span>Manually translate rules between CLAUDE.md, .cursorrules, AGENTS.md, GEMINI.md, .windsurfrules...</span></div>
+          <div class="comp-item"><span class="icon">✗</span><span>Agents silently ignored. Windsurf truncates at 6k chars. Codex caps at 32KB. You find out too late.</span></div>
+          <div class="comp-item"><span class="icon">✗</span><span>"Claude sometimes picks the wrong agent." No way to debug why.</span></div>
+        </div>
+        <div class="comp-arrow">→</div>
+        <div class="comp-card after">
+          <div class="comp-label">✓ With dotti</div>
+          <div class="comp-item"><span class="icon">✓</span><span>Scans YOUR codebase. Detects React 18 + Prisma + Vitest + Tailwind. Configs match your actual stack.</span></div>
+          <div class="comp-item"><span class="icon">✓</span><span>Recommends 5 agents with confidence scores. Skip 70 you don't need. Save ~12k tokens.</span></div>
+          <div class="comp-item"><span class="icon">✓</span><span>One command generates native configs for all 7 tools. Correct format. Proper limits. Done.</span></div>
+          <div class="comp-item"><span class="icon">✓</span><span>Auto-truncates for Windsurf (6k), validates Codex (32KB), uses globs for Cursor. No silent failures.</span></div>
+          <div class="comp-item"><span class="icon">✓</span><span>Optimized descriptions with clear trigger words. Agents fire when they should.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Terminal Demo -->
+    <section class="terminal-section">
+      <div class="section-tag green">See it Work</div>
+      <h2>One command. Every tool configured.</h2>
+      <p class="section-desc">Run <code style="font-family:var(--mono);color:var(--green);background:var(--surface);padding:2px 8px;border-radius:4px;font-size:14px;">npx dotti scan</code> in your project root.</p>
+
+      <div class="terminal reveal">
+        <div class="terminal-bar">
+          <div class="tdot r"></div><div class="tdot y"></div><div class="tdot g"></div>
+          <div class="terminal-title">~/my-saas-app</div>
+          <div style="width:36px;"></div>
+        </div>
+        <div class="terminal-body">
+          <span class="tl"><span class="t-prompt">❯</span> <span class="t-cmd">npx dotti scan</span></span>
+          <span class="tl">&nbsp;</span>
+          <span class="tl"><span class="t-ok">  dotti</span> <span class="t-dim">— AI config, from your code</span></span>
+          <span class="tl">&nbsp;</span>
+          <span class="tl t-bold">  Tech Stack Detected</span>
+          <span class="tl"><span class="t-dim">  ─────────────────────</span></span>
+          <span class="tl"><span class="t-tree">  ├── TypeScript (142 files)</span></span>
+          <span class="tl"><span class="t-tree">  ├── React 18.3 + Next.js 14</span></span>
+          <span class="tl"><span class="t-tree">  ├── Vitest (unit) + Playwright (e2e)</span></span>
+          <span class="tl"><span class="t-tree">  ├── Prisma + PostgreSQL</span></span>
+          <span class="tl"><span class="t-tree">  ├── Tailwind CSS + shadcn/ui</span></span>
+          <span class="tl"><span class="t-tree">  └── GitHub Actions + Docker</span></span>
+          <span class="tl">&nbsp;</span>
+          <span class="tl t-bold">  Recommended Agents</span>
+          <span class="tl"><span class="t-dim">  ─────────────────────</span></span>
+          <span class="tl"><span class="t-info">  Code Reviewer        ██████████  95%</span></span>
+          <span class="tl"><span class="t-info">  Test Writer           █████████░  88%</span></span>
+          <span class="tl"><span class="t-info">  Database Expert       ████████░░  85%</span></span>
+          <span class="tl"><span class="t-info">  Security Auditor      ████████░░  78%</span></span>
+          <span class="tl"><span class="t-info">  Component Designer    ███████░░░  72%</span></span>
+          <span class="tl">&nbsp;</span>
+          <span class="tl t-bold">  Files Generated</span>
+          <span class="tl"><span class="t-dim">  ─────────────────────</span></span>
+          <span class="tl"><span class="t-ok">  ✓ CLAUDE.md + 5 agents            4.2k tokens</span></span>
+          <span class="tl"><span class="t-ok">  ✓ .cursor/rules/ (6 .mdc files)   3.1k chars</span></span>
+          <span class="tl"><span class="t-ok">  ✓ AGENTS.md                       2.8KB / 32KB</span></span>
+          <span class="tl"><span class="t-ok">  ✓ .github/ (instructions + agents) 3.5k chars</span></span>
+          <span class="tl"><span class="t-ok">  ✓ .windsurfrules                  2.2k / 6k chars</span></span>
+          <span class="tl"><span class="t-ok">  ✓ GEMINI.md                       2.6k tokens</span></span>
+          <span class="tl"><span class="t-ok">  ✓ .amp/settings.json              0.3KB</span></span>
+          <span class="tl">&nbsp;</span>
+          <span class="tl"><span class="t-dim">  23 files · 7 tools · 3.8 seconds</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Benefits -->
+    <section class="benefits-section">
+      <div class="section-tag green">Why dotti</div>
+      <h2>What you actually get</h2>
+      <p class="section-desc">Not features — outcomes. Here's how dotti changes your workflow.</p>
+
+      <div class="benefits-grid">
+        <!-- Featured: context window -->
+        <div class="benefit-card featured reveal">
+          <div>
+            <div class="benefit-num">01 — SAVE YOUR CONTEXT WINDOW</div>
+            <h3>From 53k tokens wasted to 4.2k used</h3>
+            <p>
+              Most developers load every agent they find. Claude Code consumes 53k tokens before you even say "hi".
+              dotti recommends only what your project needs — typically 5 agents instead of 75.
+              That's 30–70% of your context window back for actual coding.
+            </p>
+            <div class="proof">
+              <em>"You need 5 out of 75. Everything else is noise."</em>
+              — developer after 800M token experiment
+            </div>
+          </div>
+          <div class="right">
+            <div class="context-bar-container">
+              <div class="context-bar-label"><span>Without dotti — 75 agents loaded</span><span style="color:var(--red);">53k tokens (33%)</span></div>
+              <div class="context-bar bad"><div class="used" style="width:33%;"></div></div>
+              <div style="height: 10px;"></div>
+              <div class="context-bar-label"><span>With dotti — 5 agents loaded</span><span style="color:var(--green);">4.2k tokens (2.4%)</span></div>
+              <div class="context-bar good"><div class="used" style="width:2.4%;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="benefit-card reveal">
+          <div class="benefit-num">02 — KNOW WHAT YOU NEED</div>
+          <h3>Recommendations based on YOUR code</h3>
+          <p>
+            No more guessing. No more copying someone else's CLAUDE.md from a blog post.
+            dotti reads your actual code — detects React 18, Prisma, Vitest, Tailwind —
+            and recommends agents with confidence scores. You see WHY each one was chosen.
+          </p>
+          <div class="proof"><em>"I asked ChatGPT to create AGENTS.md and got 14k words with 8 agents. Is this file any good at all?"</em> — Codex user</div>
+        </div>
+
+        <div class="benefit-card reveal">
+          <div class="benefit-num">03 — ONE SCAN, ALL TOOLS</div>
+          <h3>7 tools configured from one command</h3>
+          <p>
+            Using Cursor + Claude Code + Copilot? That's 3 different formats to keep in sync.
+            dotti generates native files for all 7 tools from one scan — each respecting the tool's
+            format, char limits, and conventions.
+          </p>
+          <div class="proof"><em>"I have ~15 rules to keep in sync across .mdc, .claude/rules/, and AGENTS.md. Manual copying is hell."</em> — Cursor Forum</div>
+        </div>
+
+        <div class="benefit-card reveal">
+          <div class="benefit-num">04 — NO SILENT FAILURES</div>
+          <h3>Agents that actually fire when called</h3>
+          <p>
+            Bad descriptions mean wrong agents activate — or none at all.
+            Windsurf rules silently break after updates. Cursor ignores misplaced AGENTS.md.
+            dotti generates action-oriented descriptions with clear triggers and validates every format.
+          </p>
+          <div class="proof"><em>".windsurfrules stopped functioning properly after an update"</em> — Windsurf Issue #157</div>
+        </div>
+
+        <div class="benefit-card reveal">
+          <div class="benefit-num">05 — 5 SECONDS, NOT 5 HOURS</div>
+          <h3>New project? Switching tools? Instant config.</h3>
+          <p>
+            New project, switching from Cursor to Claude Code, or joining a team?
+            One command and every AI tool is configured. No accounts, no API keys, no setup.
+          </p>
+        </div>
+
+        <div class="benefit-card reveal">
+          <div class="benefit-num">06 — ZERO LOCK-IN</div>
+          <h3>Open source. Free. Your configs, your control.</h3>
+          <p>
+            dotti generates standard config files — no runtime dependency.
+            Delete dotti and your configs keep working.
+            Edit them however you want. MIT licensed.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tools -->
+    <section class="tools-section reveal">
+      <div class="section-tag">Supported Tools</div>
+      <h2>Native formats for every tool</h2>
+      <p class="section-desc">Each tool gets configs in its own format, respecting its own limits.</p>
+      <div class="tools-row">
+        <div class="tool-chip"><div class="dot"></div>Claude Code<span class="file">CLAUDE.md</span></div>
+        <div class="tool-chip"><div class="dot"></div>Cursor<span class="file">.mdc</span></div>
+        <div class="tool-chip"><div class="dot"></div>GitHub Copilot<span class="file">.github/</span></div>
+        <div class="tool-chip"><div class="dot"></div>OpenAI Codex<span class="file">AGENTS.md</span></div>
+        <div class="tool-chip"><div class="dot"></div>Windsurf<span class="file">.windsurfrules</span></div>
+        <div class="tool-chip"><div class="dot"></div>Gemini CLI<span class="file">GEMINI.md</span></div>
+        <div class="tool-chip"><div class="dot"></div>Amp<span class="file">.amp/</span></div>
+      </div>
+    </section>
+
+    <!-- How -->
+    <section class="how-section">
+      <div class="section-tag">How It Works</div>
+      <h2>Three steps. Under five seconds.</h2>
+      <div class="how-steps reveal">
+        <div class="how-step">
+          <div class="step-num">01</div>
+          <h3>Scan</h3>
+          <p>Reads package.json, file tree, and existing configs. Detects your exact stack — frameworks, testing, database, styling, deployment.</p>
+          <code>142 files · 8 techs detected</code>
+        </div>
+        <div class="how-step">
+          <div class="step-num">02</div>
+          <h3>Recommend</h3>
+          <p>Matches your stack against agent templates and rule sets. Each scored by relevance to YOUR code. Skip what you don't need.</p>
+          <code>5 agents · 6 rules · 4.2k tokens</code>
+        </div>
+        <div class="how-step">
+          <div class="step-num">03</div>
+          <h3>Generate</h3>
+          <p>Produces native files per tool — YAML frontmatter for Claude, .mdc globs for Cursor, size-validated for Windsurf and Codex.</p>
+          <code>23 files · 7 tools · 3.8s</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section" id="install">
+      <div class="cta-box reveal">
+        <h2>Try it now</h2>
+        <p>No signup. No API key. No config.<br>One command in your project root.</p>
+        <a href="https://npmjs.com/package/dotti" class="cta-btn">npx dotti scan</a>
+        <div class="cta-sub">Free · Open source · MIT License</div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <span>dotti v0.1 · MIT</span>
+      <div class="flinks">
+        <a href="https://github.com/your-org/dotti">GitHub</a>
+        <a href="https://npmjs.com/package/dotti">npm</a>
+        <a href="https://github.com/your-org/dotti/issues">Issues</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
