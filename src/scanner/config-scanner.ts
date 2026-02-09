@@ -26,7 +26,8 @@ export async function scanExistingConfigs(projectRoot: string): Promise<Existing
 
   for (const [tool, patterns] of Object.entries(CONFIG_PATTERNS) as Array<[ToolTarget, string[]]>) {
     for (const pattern of patterns) {
-      const fullPattern = path.join(projectRoot, pattern);
+      // Normalize to forward slashes for cross-platform glob compatibility
+      const fullPattern = path.join(projectRoot, pattern).replace(/\\/g, "/");
 
       try {
         const matches = await glob(fullPattern, { nodir: true, dot: true });
@@ -37,8 +38,14 @@ export async function scanExistingConfigs(projectRoot: string): Promise<Existing
           seen.add(relativePath);
 
           let sizeBytes = 0;
+          let content: string | undefined;
+          const MAX_CONFIG_READ_SIZE = 10 * 1024 * 1024; // 10MB safety limit
           try {
-            sizeBytes = fs.statSync(match).size;
+            const stat = fs.statSync(match);
+            sizeBytes = stat.size;
+            if (sizeBytes <= MAX_CONFIG_READ_SIZE) {
+              content = fs.readFileSync(match, "utf-8");
+            }
           } catch {
             // ignore
           }
@@ -47,7 +54,8 @@ export async function scanExistingConfigs(projectRoot: string): Promise<Existing
             tool,
             filePath: relativePath,
             sizeBytes,
-            isValid: true, // TODO: add format validation per tool
+            content,
+            isValid: true, // validation happens in src/validator/
             issues: [],
           });
         }

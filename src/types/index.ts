@@ -188,8 +188,28 @@ export interface ExistingConfig {
   tool: ToolTarget;
   filePath: string;
   sizeBytes: number;
+  content?: string;
   isValid: boolean;
   issues?: string[];
+}
+
+// ─────────────────────────────────────────────────────────────
+// Validator types
+// ─────────────────────────────────────────────────────────────
+
+export interface ValidationResult {
+  configsFound: number;
+  configsValid: number;
+  issues: ValidationIssue[];
+  warnings: ValidationIssue[];
+}
+
+export interface ValidationIssue {
+  tool: ToolTarget;
+  file: string;
+  severity: "error" | "warning";
+  message: string;
+  fix?: string;
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 {
   "name": "dotti",
   "version": "0.1.0",
+  "type": "module",
   "description": "Scan your codebase. Get AI agent recommendations. Generate optimized configs for every AI coding tool — in seconds.",
   "keywords": [
     "ai",
